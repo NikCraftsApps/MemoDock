@@ -1,0 +1,154 @@
+<Window x:Class="MemoDock.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MemoDock.ViewModels"
+        Title="MemoDock" Width="1100" Height="720" WindowStartupLocation="CenterScreen">
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <DockPanel>
+
+        <!-- Top bar -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SurfaceBrush}"
+                Padding="12"
+                BorderBrush="{StaticResource BorderBrush1}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="MemoDock"
+                           FontSize="20" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="4,0,20,0"/>
+
+                <TextBox Grid.Column="1"
+                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         MinWidth="360"
+                         ToolTip="Search in text"/>
+
+                <CheckBox Grid.Column="2" Style="{StaticResource Chip}"
+                          Content="Pinned only"
+                          IsChecked="{Binding ShowPinnedOnly}"
+                          Margin="10,0,0,0" VerticalAlignment="Center"/>
+
+                <Button Grid.Column="3" Style="{StaticResource GhostButton}"
+                        Content="Clear unpinned"
+                        Command="{Binding ClearUnpinnedAsyncCommand}"
+                        Margin="12,0,0,0"/>
+
+                <Button Grid.Column="4" Style="{StaticResource GhostButton}"
+                        Content="Settings"
+                        Click="OpenSettings_Click"
+                        Margin="12,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding View}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Background="{StaticResource SurfaceAltBrush}"
+                                        CornerRadius="10" Width="80" Height="80" Margin="0,0,14,0"
+                                        BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1">
+                                    <Grid>
+                                        <Image Width="80" Height="80" Stretch="UniformToFill"
+                                               Source="{Binding Thumbnail}">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Type}" Value="image">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+
+                                        <TextBlock Text="TXT" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center" FontWeight="Bold"
+                                                   Foreground="{StaticResource TextMutedBrush}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Type}" Value="text">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" MaxHeight="64"/>
+                                    <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button Style="{StaticResource ActionButton}" Content="Copy"
+                                            Command="{Binding CopyToClipboardCommand}"
+                                            Margin="0,0,10,0"/>
+
+                                    <Button Style="{StaticResource ActionButton}" Content="History"
+                                            Command="{Binding DataContext.OpenTimelineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Margin="0,0,10,0"/>
+
+                                    <ToggleButton Style="{StaticResource PinToggle}"
+                                                  MinWidth="84" MinHeight="38"
+                                                  IsChecked="{Binding IsPinned, Mode=TwoWay}"
+                                                  Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding}">
+                                        <ToggleButton.Content>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Pin"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                                <Setter Property="Text" Value="Pinned"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </ToggleButton.Content>
+                                    </ToggleButton>
+                                </StackPanel>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
+</Window>

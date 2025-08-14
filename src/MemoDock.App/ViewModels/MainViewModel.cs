@@ -1,0 +1,168 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Data;
+using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using MemoDock.Services;
+using MemoDock.Views;
+
+namespace MemoDock.ViewModels
+{
+    public partial class MainViewModel : ObservableObject
+    {
+        public ObservableCollection<ClipboardItemViewModel> Items { get; } = new();
+        public ICollectionView View { get; }
+
+        [ObservableProperty] private string search = "";
+        [ObservableProperty] private bool showPinnedOnly = false;
+
+        public IAsyncRelayCommand ClearUnpinnedAsyncCommand { get; }
+
+        private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(250) };
+
+        public MainViewModel()
+        {
+            View = CollectionViewSource.GetDefaultView(Items);
+            View.Filter = Filter;
+
+            ClearUnpinnedAsyncCommand = new AsyncRelayCommand(ClearUnpinnedAsync);
+
+            _debounce.Tick += async (_, __) =>
+            {
+                _debounce.Stop();
+                await RefreshAsync();
+            };
+            ClipboardService.Instance.Changed += () =>
+            {
+                _debounce.Stop();
+                _debounce.Start();
+            };
+
+            _ = RefreshAsync();
+        }
+
+        private bool Filter(object obj)
+        {
+            if (obj is not ClipboardItemViewModel it) return false;
+            if (ShowPinnedOnly && !it.IsPinned) return false;
+
+            if (string.IsNullOrWhiteSpace(Search)) return true;
+            var s = Search.Trim();
+
+            return it.Type == "text"
+                   && it.DisplayText != null
+                   && it.DisplayText.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        partial void OnSearchChanged(string value) => View.Refresh();
+        partial void OnShowPinnedOnlyChanged(bool value) => View.Refresh();
+
+        private async Task RefreshAsync()
+        {
+            var list = await Task.Run(() =>
+            {
+                var result = new List<ClipboardItemViewModel>();
+                using var conn = DatabaseService.Instance.OpenConnection();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"SELECT id,type,text,content_path,is_pinned,updated_at
+                                    FROM entries
+                                    ORDER BY updated_at DESC
+                                    LIMIT 1000";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    var id = r.GetInt64(0);
+                    var type = r.GetString(1);
+                    var text = r.IsDBNull(2) ? null : r.GetString(2);
+                    var path = r.IsDBNull(3) ? null : r.GetString(3);
+                    var pinned = r.GetInt32(4) == 1;
+                    var updated = DateTime.Parse(r.GetString(5));
+                    result.Add(new ClipboardItemViewModel(id, type, text, path, pinned, updated));
+                }
+                return result;
+            });
+
+            Items.Clear();
+            foreach (var vm in list) Items.Add(vm);
+            View.Refresh();
+        }
+
+        private async Task ClearUnpinnedAsync()
+        {
+            var ok = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var res = System.Windows.MessageBox.Show(
+                    "Usun¹æ wszystkie NIEPRZYPINANE elementy? (pliki w /store te¿ zostan¹ skasowane)",
+                    "Potwierdzenie",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning);
+                return res == System.Windows.MessageBoxResult.Yes;
+            });
+            if (!ok) return;
+
+            await Task.Run(() =>
+            {
+                using var conn = DatabaseService.Instance.OpenConnection();
+
+                var paths = new List<string>();
+                using (var c = conn.CreateCommand())
+                {
+                    c.CommandText = @"SELECT content_path FROM entries WHERE is_pinned=0 AND content_path IS NOT NULL
+                                      UNION
+                                      SELECT v.content_path FROM versions v
+                                      JOIN entries e ON e.id=v.entry_id
+                                      WHERE e.is_pinned=0 AND v.content_path IS NOT NULL";
+                    using var r = c.ExecuteReader();
+                    while (r.Read())
+                        if (!r.IsDBNull(0)) paths.Add(r.GetString(0));
+                }
+
+                using (var c = conn.CreateCommand())
+                {
+                    c.CommandText = @"DELETE FROM versions WHERE entry_id IN (SELECT id FROM entries WHERE is_pinned=0);
+                                      DELETE FROM entries WHERE is_pinned=0;";
+                    c.ExecuteNonQuery();
+                }
+
+                foreach (var p in paths.Distinct())
+                {
+                    try { if (File.Exists(p)) File.Delete(p); } catch { /* ignore */ }
+                }
+            });
+
+            await RefreshAsync();
+        }
+
+        [RelayCommand]
+        private void TogglePin(ClipboardItemViewModel? item)
+        {
+            if (item == null) return;
+
+            using var conn = DatabaseService.Instance.OpenConnection();
+            using var c = conn.CreateCommand();
+            c.CommandText = "UPDATE entries SET is_pinned=@p WHERE id=@id";
+            c.Parameters.AddWithValue("@p", item.IsPinned ? 1 : 0);
+            c.Parameters.AddWithValue("@id", item.Id);
+            c.ExecuteNonQuery();
+
+            View.Refresh();
+        }
+
+        [RelayCommand]
+        private void OpenTimeline(ClipboardItemViewModel? item)
+        {
+            if (item == null) return;
+            var w = new TimelineWindow(item.Id)
+            {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            w.ShowDialog();
+        }
+    }
+}

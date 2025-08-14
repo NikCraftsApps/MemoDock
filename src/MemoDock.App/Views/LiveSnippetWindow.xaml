@@ -1,0 +1,24 @@
+<Window x:Class="MemoDock.Views.LiveSnippetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MemoDock.ViewModels"
+        Title="Pinned - MemoDock" Height="460" Width="640" WindowStartupLocation="CenterOwner">
+    <Window.DataContext>
+        <vm:LiveSnippetViewModel/>
+    </Window.DataContext>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Pinned}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DisplayText}" Width="420" TextTrimming="CharacterEllipsis"/>
+                            <Button Style="{StaticResource PrimaryButton}" Content="Copy" Command="{Binding CopyToClipboardCommand}" Margin="10,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</Window>

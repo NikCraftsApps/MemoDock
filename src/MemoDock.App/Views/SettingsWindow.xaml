@@ -1,0 +1,47 @@
+﻿<Window x:Class="MemoDock.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MemoDock.ViewModels"
+        Title="Settings - MemoDock" Height="370" Width="755"
+        WindowStartupLocation="CenterOwner">
+    <Window.DataContext>
+        <vm:SettingsViewModel/>
+    </Window.DataContext>
+
+    <ScrollViewer Margin="0,0,0,13">
+        <StackPanel Margin="18">
+
+            <TextBlock FontSize="16" FontWeight="SemiBold" Text="General"/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <CheckBox Content="Clipboard listener enabled" IsChecked="{Binding S.ListenEnabled}"/>
+                <CheckBox Content="Auto start" Margin="18,0,0,0" IsChecked="{Binding S.AutoStart}"/>
+            </StackPanel>
+
+            <Separator Margin="0,10,0,10"/>
+
+            <TextBlock FontSize="16" FontWeight="SemiBold" Text="Sizes &amp; retention"/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Text="Max image size (MB):" VerticalAlignment="Center"/>
+                <TextBox Width="60" Text="{Binding S.MaxImageBytes, Converter={StaticResource bytesToMbConverter}, Mode=TwoWay}"/>
+                <TextBlock Text="Retention limit:" Margin="18,0,0,0" VerticalAlignment="Center"/>
+                <TextBox Width="80" Text="{Binding S.RetentionItems}"/>
+            </StackPanel>
+
+            <Separator Margin="0,10,0,10"/>
+
+            <TextBlock FontSize="16" FontWeight="SemiBold" Text="Backup"/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBox Width="420" Text="{Binding S.BackupFolder}"/>
+                <Button Style="{StaticResource GhostButton}" Content="Choose folder..." Command="{Binding BrowseBackupFolderCommand}"/>
+                <Button Style="{StaticResource GhostButton}" Content="Export now" Command="{Binding ExportNowCommand}" Margin="12,0,0,0"/>
+                <Button Style="{StaticResource GhostButton}" Content="Import from file..." Command="{Binding ImportNowCommand}" Margin="6,0,0,0"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button Style="{StaticResource PrimaryButton}" Content="Save" Command="{Binding SaveCommand}" Width="73" />
+                <Button Style="{StaticResource GhostButton}" Content="Close" Click="Close_Click" Width="73"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>
