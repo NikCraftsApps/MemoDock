@@ -24,6 +24,11 @@ namespace MemoDock.ViewModels
 
         public IAsyncRelayCommand ClearUnpinnedAsyncCommand { get; }
 
+        private readonly List<ClipboardItemViewModel> _subscribedSelection = new();
+        public int SelectedCount => Items.Count(i => i.IsSelected);
+        public bool HasSelection => SelectedCount > 0;
+        private IEnumerable<long> SelectedIds() => Items.Where(i => i.IsSelected).Select(i => i.Id);
+
         private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(250) };
 
         public MainViewModel()
@@ -60,8 +65,19 @@ namespace MemoDock.ViewModels
                    && it.DisplayText.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        partial void OnSearchChanged(string value) => View.Refresh();
-        partial void OnShowPinnedOnlyChanged(bool value) => View.Refresh();
+        partial void OnSearchChanged(string value)
+        {
+            View.Refresh();
+            OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(HasSelection));
+        }
+
+        partial void OnShowPinnedOnlyChanged(bool value)
+        {
+            View.Refresh();
+            OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(HasSelection));
+        }
 
         private async Task RefreshAsync()
         {
@@ -88,9 +104,31 @@ namespace MemoDock.ViewModels
                 return result;
             });
 
+            foreach (var it in _subscribedSelection)
+                it.PropertyChanged -= OnItemSelectionChanged;
+            _subscribedSelection.Clear();
+
             Items.Clear();
-            foreach (var vm in list) Items.Add(vm);
+            foreach (var vm in list)
+            {
+                vm.PropertyChanged += OnItemSelectionChanged; 
+                _subscribedSelection.Add(vm);
+                Items.Add(vm);
+            }
+
             View.Refresh();
+
+            OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(HasSelection));
+        }
+
+        private void OnItemSelectionChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ClipboardItemViewModel.IsSelected))
+            {
+                OnPropertyChanged(nameof(SelectedCount));
+                OnPropertyChanged(nameof(HasSelection));
+            }
         }
 
         private async Task ClearUnpinnedAsync()
@@ -163,6 +201,42 @@ namespace MemoDock.ViewModels
                 Owner = System.Windows.Application.Current.MainWindow
             };
             w.ShowDialog();
+        }
+
+        [RelayCommand]
+        private async Task PinSelectedAsync()
+        {
+            var ids = SelectedIds().ToArray();
+            if (ids.Length == 0) return;
+            await Task.Run(() => StorageService.SetPinned(ids, true));
+            await RefreshAsync();
+        }
+
+        [RelayCommand]
+        private async Task UnpinSelectedAsync()
+        {
+            var ids = SelectedIds().ToArray();
+            if (ids.Length == 0) return;
+            await Task.Run(() => StorageService.SetPinned(ids, false));
+            await RefreshAsync();
+        }
+
+        [RelayCommand]
+        private async Task DeleteSelectedAsync()
+        {
+            var ids = SelectedIds().ToArray();
+            if (ids.Length == 0) return;
+
+            var res = System.Windows.MessageBox.Show(
+                $"Usun¹æ {ids.Length} zazn. wpis(ów)? Operacja jest nieodwracalna.",
+                "Usuñ zaznaczone",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            if (res != System.Windows.MessageBoxResult.Yes) return;
+
+            await Task.Run(() => StorageService.DeleteEntries(ids));
+            await RefreshAsync();
         }
     }
 }
