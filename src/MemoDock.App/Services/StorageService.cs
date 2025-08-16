@@ -1,6 +1,8 @@
 using System;
 using System.IO;
-using MemoDock.App.Utils;    
+using System.Linq;
+using System.Collections.Generic;
+using MemoDock.App.Utils;
 using MemoDock.Utils;
 using Microsoft.Data.Sqlite;
 
@@ -11,7 +13,7 @@ namespace MemoDock.Services
         public static void SaveText(string text)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
-            var hash = Crypto.Sha256Hex(text ?? string.Empty);   
+            var hash = Crypto.Sha256Hex(text ?? string.Empty);
 
             using var conn = DatabaseService.Instance.OpenConnection();
 
@@ -51,7 +53,7 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),@
         public static void SaveImage(byte[] pngBytes)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
-            var hash = Crypto.Sha256Hex(pngBytes);                
+            var hash = Crypto.Sha256Hex(pngBytes);
 
             Directory.CreateDirectory(AppPaths.StoreFolder);
             var file = Path.Combine(AppPaths.StoreFolder, $"{Guid.NewGuid():N}.png");
@@ -96,6 +98,71 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),N
         {
             try { return File.Exists(path) ? File.ReadAllText(path) : null; }
             catch { return null; }
+        }
+
+        public static void SetPinned(long[] ids, bool pinned)
+        {
+            if (ids == null || ids.Length == 0) return;
+            using var conn = DatabaseService.Instance.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+
+            var pars = string.Join(",", ids.Select((_, i) => "@p" + i));
+            cmd.CommandText = $"UPDATE entries SET is_pinned={(pinned ? 1 : 0)}, updated_at=CURRENT_TIMESTAMP WHERE id IN ({pars});";
+            for (int i = 0; i < ids.Length; i++)
+                cmd.Parameters.AddWithValue("@p" + i, ids[i]);
+
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+        }
+
+        public static void DeleteEntries(long[] ids)
+        {
+            if (ids == null || ids.Length == 0) return;
+
+            using var conn = DatabaseService.Instance.OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            var paths = new List<string>();
+
+            using (var c = conn.CreateCommand())
+            {
+                c.Transaction = tx;
+                var epars = string.Join(",", ids.Select((_, i) => "@e" + i));
+                var vpars = string.Join(",", ids.Select((_, i) => "@v" + i));
+                c.CommandText = $@"
+SELECT content_path FROM entries  WHERE id       IN ({epars}) AND content_path IS NOT NULL
+UNION
+SELECT content_path FROM versions WHERE entry_id IN ({vpars}) AND content_path IS NOT NULL";
+                for (int i = 0; i < ids.Length; i++)
+                {
+                    c.Parameters.AddWithValue("@e" + i, ids[i]);
+                    c.Parameters.AddWithValue("@v" + i, ids[i]);
+                }
+                using var r = c.ExecuteReader();
+                while (r.Read()) if (!r.IsDBNull(0)) paths.Add(r.GetString(0));
+            }
+
+            using (var c = conn.CreateCommand())
+            {
+                c.Transaction = tx;
+                var a = string.Join(",", ids.Select((_, i) => "@a" + i));
+                var b = string.Join(",", ids.Select((_, i) => "@b" + i));
+                c.CommandText = $@"DELETE FROM versions WHERE entry_id IN ({a});
+                                   DELETE FROM entries  WHERE id       IN ({b});";
+                for (int i = 0; i < ids.Length; i++)
+                {
+                    c.Parameters.AddWithValue("@a" + i, ids[i]);
+                    c.Parameters.AddWithValue("@b" + i, ids[i]);
+                }
+                c.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+
+            foreach (var p in new HashSet<string>(paths))
+                try { if (File.Exists(p)) File.Delete(p); } catch { /* ignore */ }
         }
     }
 }

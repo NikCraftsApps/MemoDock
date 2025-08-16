@@ -3,13 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:MemoDock.ViewModels"
         Title="MemoDock" Width="1100" Height="720" WindowStartupLocation="CenterScreen">
+
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
 
     <DockPanel>
 
-        <!-- Top bar -->
         <Border DockPanel.Dock="Top"
                 Background="{StaticResource SurfaceBrush}"
                 Padding="12"
@@ -19,6 +19,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -43,7 +44,28 @@
                         Command="{Binding ClearUnpinnedAsyncCommand}"
                         Margin="12,0,0,0"/>
 
-                <Button Grid.Column="4" Style="{StaticResource GhostButton}"
+                <Button Grid.Column="4" x:Name="ActionsButton"
+                        Style="{StaticResource GhostButton}"
+                        Content="Actions"
+                        Margin="12,0,0,0"
+                        Click="ActionsButton_Click">
+                    <Button.ContextMenu>
+                        <ContextMenu Placement="Bottom">
+                            <MenuItem Header="Pin selected"
+                                      Command="{Binding PinSelectedCommand}"
+                                      IsEnabled="{Binding HasSelection}"/>
+                            <MenuItem Header="Unpin selected"
+                                      Command="{Binding UnpinSelectedCommand}"
+                                      IsEnabled="{Binding HasSelection}"/>
+                            <Separator/>
+                            <MenuItem Header="Delete selected"
+                                      Command="{Binding DeleteSelectedCommand}"
+                                      IsEnabled="{Binding HasSelection}"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+
+                <Button Grid.Column="5" Style="{StaticResource GhostButton}"
                         Content="Settings"
                         Click="OpenSettings_Click"
                         Margin="12,0,0,0"/>
@@ -163,7 +185,6 @@
                                     </ToggleButton.Content>
                                 </ToggleButton>
                             </StackPanel>
-
                         </Grid>
                     </Border>
                 </DataTemplate>
