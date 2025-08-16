@@ -9,18 +9,20 @@ using Application = System.Windows.Application;
 
 namespace MemoDock.ViewModels
 {
-    public partial class LiveSnippetViewModel : ObservableObject
+    public partial class PinnedViewModel : ObservableObject
     {
         public ObservableCollection<ClipboardItemViewModel> Pinned { get; } = new();
 
         private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(250) };
 
-        public LiveSnippetViewModel()
+        public PinnedViewModel()
         {
+            StorageEvents.EntriesMutated += OnEntriesMutated;
+
             _debounce.Tick += async (_, __) =>
             {
                 _debounce.Stop();
-                await LoadAsync();
+                await RefreshAsync();
             };
 
             ClipboardService.Instance.Changed += () =>
@@ -29,21 +31,27 @@ namespace MemoDock.ViewModels
                 _debounce.Start();
             };
 
-            _ = LoadAsync();
+            _ = RefreshAsync();
         }
 
-        private async Task LoadAsync()
+        private void OnEntriesMutated()
+        {
+            _ = RefreshAsync();
+        }
+
+        public async Task RefreshAsync()
         {
             var list = await Task.Run(() =>
             {
                 var res = new System.Collections.Generic.List<ClipboardItemViewModel>();
                 using var conn = DatabaseService.Instance.OpenConnection();
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"SELECT id,type,text,content_path,is_pinned,updated_at
-                                    FROM entries
-                                    WHERE is_pinned=1
-                                    ORDER BY updated_at DESC
-                                    LIMIT 100";
+                cmd.CommandText = @"
+SELECT id,type,text,content_path,is_pinned,updated_at,pin_order
+FROM entries
+WHERE is_pinned=1
+ORDER BY COALESCE(pin_order, 999999), updated_at DESC
+LIMIT 100;";
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
                 {

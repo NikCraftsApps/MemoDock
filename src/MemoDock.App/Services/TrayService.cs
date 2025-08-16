@@ -101,14 +101,14 @@ namespace MemoDock.App.Services
         {
             foreach (Window w in WpfApp.Current.Windows)
             {
-                if (w is LiveSnippetWindow l)
+                if (w is PinnedWindow l)
                 {
                     if (!l.IsVisible) l.Show();
                     l.Activate();
                     return;
                 }
             }
-            var win = new LiveSnippetWindow { Owner = WpfApp.Current.MainWindow };
+            var win = new PinnedWindow { Owner = WpfApp.Current.MainWindow };
             win.Show();
         }
 
