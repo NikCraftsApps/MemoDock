@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using MemoDock.App.Utils;
 using System.Windows.Media.Imaging;
+using MemoDock.App.Utils;
 
 namespace MemoDock.Services
 {
@@ -12,8 +12,9 @@ namespace MemoDock.Services
         public static ClipboardService Instance { get; } = new ClipboardService();
 
         private readonly System.Windows.Threading.DispatcherTimer _timer;
-        public bool IsPaused { get; set; } = false;
+        private bool _started;
 
+        public bool IsPaused { get; set; } = false;
         public event Action? Changed;
 
         private string? _lastHash;
@@ -22,18 +23,45 @@ namespace MemoDock.Services
         {
             _timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
             _timer.Tick += (_, __) => PollWrap();
+            // UWAGA: nie startujemy tutaj. Wywo³aj Start() po DB init.
+        }
+
+        public void Start()
+        {
+            if (_started) return;
+            _started = true;
             _timer.Start();
         }
 
-        public void Dispose() => _timer.Stop();
+        public void Stop()
+        {
+            _timer.Stop();
+            _started = false;
+        }
+
+        public void Dispose() => Stop();
 
         public void ForceRefresh() => Changed?.Invoke();
 
         private void PollWrap()
         {
             if (IsPaused) return;
-            try { PollOnce(); }
-            catch (Exception ex) { Logger.Log("Clipboard poll error", ex); }
+
+            // DB jeszcze nie gotowa? pomiñ tick bez logowania
+            if (!DatabaseService.Instance.IsInitialized) return;
+
+            try
+            {
+                PollOnce();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("DB not initialized"))
+            {
+                // wycisz do czasu inicjalizacji
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Clipboard poll error", ex);
+            }
         }
 
         private void PollOnce()

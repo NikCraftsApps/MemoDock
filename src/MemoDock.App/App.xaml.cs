@@ -1,10 +1,10 @@
 using System;
 using System.Windows;
-using MemoDock.App.Services;   
-using MemoDock.Services;       
+using MemoDock.App.Services;
+using MemoDock.Services;
 using MemoDock.App.Views;
 using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;      
+using MessageBox = System.Windows.MessageBox;
 
 namespace MemoDock.App
 {
@@ -14,7 +14,7 @@ namespace MemoDock.App
         {
             try
             {
-                DatabaseService.Instance.Initialize();
+                DatabaseService.Instance.Initialize();   // DB najpierw
             }
             catch (Exception ex)
             {
@@ -26,16 +26,14 @@ namespace MemoDock.App
                 return;
             }
 
-            try { SettingsService.Instance.Load(); }
-            catch (Exception ex) { Logger.Log("Settings load failed at startup", ex); }
+            try { SettingsService.Instance.Load(); } catch (Exception ex) { Logger.Log("Settings load failed at startup", ex); }
+            try { TrayService.Instance.Ensure(); } catch (Exception ex) { Logger.Log("Tray init failed", ex); }
 
-            try { TrayService.Instance.Ensure(); }
-            catch (Exception ex) { Logger.Log("Tray init failed", ex); }
+            try { ClipboardService.Instance.Start(); } catch (Exception ex) { Logger.Log("Clipboard start failed", ex); }
 
             var win = new MainWindow();
             MainWindow = win;
             win.Show();
-
 
             base.OnStartup(e);
         }

@@ -79,17 +79,18 @@ namespace MemoDock.ViewModels
             OnPropertyChanged(nameof(HasSelection));
         }
 
-        private async Task RefreshAsync()
+        public async Task RefreshAsync()
         {
             var list = await Task.Run(() =>
             {
                 var result = new List<ClipboardItemViewModel>();
                 using var conn = DatabaseService.Instance.OpenConnection();
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"SELECT id,type,text,content_path,is_pinned,updated_at
-                                    FROM entries
-                                    ORDER BY updated_at DESC
-                                    LIMIT 1000";
+                cmd.CommandText = @"
+SELECT id,type,text,content_path,is_pinned,updated_at,pin_order
+FROM entries
+ORDER BY is_pinned DESC, COALESCE(pin_order, 999999), updated_at DESC
+LIMIT 1000;";
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
                 {
@@ -111,7 +112,7 @@ namespace MemoDock.ViewModels
             Items.Clear();
             foreach (var vm in list)
             {
-                vm.PropertyChanged += OnItemSelectionChanged; 
+                vm.PropertyChanged += OnItemSelectionChanged;
                 _subscribedSelection.Add(vm);
                 Items.Add(vm);
             }
@@ -181,15 +182,8 @@ namespace MemoDock.ViewModels
         private void TogglePin(ClipboardItemViewModel? item)
         {
             if (item == null) return;
-
-            using var conn = DatabaseService.Instance.OpenConnection();
-            using var c = conn.CreateCommand();
-            c.CommandText = "UPDATE entries SET is_pinned=@p WHERE id=@id";
-            c.Parameters.AddWithValue("@p", item.IsPinned ? 1 : 0);
-            c.Parameters.AddWithValue("@id", item.Id);
-            c.ExecuteNonQuery();
-
-            View.Refresh();
+            StorageService.SetPinned(new[] { item.Id }, item.IsPinned);
+            _ = RefreshAsync();
         }
 
         [RelayCommand]
@@ -240,3 +234,4 @@ namespace MemoDock.ViewModels
         }
     }
 }
+

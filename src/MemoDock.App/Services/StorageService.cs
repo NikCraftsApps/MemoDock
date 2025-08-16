@@ -48,6 +48,7 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),@
             }
 
             RetentionService.TrimToLimit(conn, SettingsService.Instance.Settings.RetentionItems);
+            StorageEvents.RaiseEntriesMutated();
         }
 
         public static void SaveImage(byte[] pngBytes)
@@ -92,6 +93,7 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),N
             }
 
             RetentionService.TrimToLimit(conn, SettingsService.Instance.Settings.RetentionItems);
+            StorageEvents.RaiseEntriesMutated(); // NEW
         }
 
         public static string? TryLoadText(string path)
@@ -105,16 +107,57 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),N
             if (ids == null || ids.Length == 0) return;
             using var conn = DatabaseService.Instance.OpenConnection();
             using var tx = conn.BeginTransaction();
-            using var cmd = conn.CreateCommand();
-            cmd.Transaction = tx;
+            if (pinned)
+            {
+                foreach (var id in ids)
+                {
+                    using var c = conn.CreateCommand();
+                    c.Transaction = tx;
+                    c.CommandText = @"
+UPDATE entries
+SET is_pinned = 1,
+    pin_order = (SELECT IFNULL(MAX(pin_order), -1) + 1 FROM entries WHERE is_pinned=1),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = @id;";
+                    c.Parameters.AddWithValue("@id", id);
+                    c.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                using var c = conn.CreateCommand();
+                c.Transaction = tx;
+                var pars = string.Join(",", ids.Select((_, i) => "@p" + i));
+                c.CommandText = $@"
+UPDATE entries
+SET is_pinned = 0,
+    pin_order = NULL,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id IN ({pars});";
+                for (int i = 0; i < ids.Length; i++) c.Parameters.AddWithValue("@p" + i, ids[i]);
+                c.ExecuteNonQuery();
+            }
 
-            var pars = string.Join(",", ids.Select((_, i) => "@p" + i));
-            cmd.CommandText = $"UPDATE entries SET is_pinned={(pinned ? 1 : 0)}, updated_at=CURRENT_TIMESTAMP WHERE id IN ({pars});";
-            for (int i = 0; i < ids.Length; i++)
-                cmd.Parameters.AddWithValue("@p" + i, ids[i]);
-
-            cmd.ExecuteNonQuery();
             tx.Commit();
+            StorageEvents.RaiseEntriesMutated(); 
+        }
+
+        public static void UpdatePinOrder(IReadOnlyList<(long id, int order)> map)
+        {
+            if (map == null || map.Count == 0) return;
+            using var conn = DatabaseService.Instance.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            foreach (var (id, ord) in map)
+            {
+                using var c = conn.CreateCommand();
+                c.Transaction = tx;
+                c.CommandText = @"UPDATE entries SET pin_order=@o, updated_at=CURRENT_TIMESTAMP WHERE id=@id;";
+                c.Parameters.AddWithValue("@o", ord);
+                c.Parameters.AddWithValue("@id", id);
+                c.ExecuteNonQuery();
+            }
+            tx.Commit();
+            StorageEvents.RaiseEntriesMutated(); 
         }
 
         public static void DeleteEntries(long[] ids)
@@ -163,6 +206,8 @@ SELECT content_path FROM versions WHERE entry_id IN ({vpars}) AND content_path I
 
             foreach (var p in new HashSet<string>(paths))
                 try { if (File.Exists(p)) File.Delete(p); } catch { /* ignore */ }
+
+            StorageEvents.RaiseEntriesMutated(); 
         }
     }
 }

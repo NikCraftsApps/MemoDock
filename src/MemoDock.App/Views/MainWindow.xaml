@@ -72,7 +72,8 @@
             </Grid>
         </Border>
 
-        <ListBox ItemsSource="{Binding View}"
+        <ListBox x:Name="MainList"
+                 ItemsSource="{Binding View}"
                  SelectionMode="Extended"
                  Background="{x:Null}" BorderThickness="0"
                  ScrollViewer.CanContentScroll="True"
@@ -80,7 +81,12 @@
                  VirtualizingPanel.IsVirtualizing="True"
                  VirtualizingPanel.VirtualizationMode="Recycling"
                  VirtualizingPanel.ScrollUnit="Pixel"
-                 HorizontalContentAlignment="Stretch">
+                 HorizontalContentAlignment="Stretch"
+                 AllowDrop="True"
+                 PreviewMouseLeftButtonDown="MainList_PreviewMouseLeftButtonDown"
+                 MouseMove="MainList_MouseMove"
+                 DragOver="MainList_DragOver"
+                 Drop="MainList_Drop">
 
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>

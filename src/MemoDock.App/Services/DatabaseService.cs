@@ -13,6 +13,8 @@ namespace MemoDock.Services
         private string? _connectionString;
         private bool _initialized;
 
+        public bool IsInitialized => _initialized;   
+
         private DatabaseService() { }
 
         public void Initialize()
@@ -35,8 +37,9 @@ namespace MemoDock.Services
                     using var conn = new SqliteConnection(_connectionString);
                     conn.Open();
 
-                    using var cmd = conn.CreateCommand();
-                    cmd.CommandText = @"
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,
@@ -58,9 +61,42 @@ CREATE TABLE IF NOT EXISTS versions (
     FOREIGN KEY(entry_id) REFERENCES entries(id)
 );
 CREATE INDEX IF NOT EXISTS idx_entries_hash ON entries(content_hash);";
-                    cmd.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery();
+                    }
 
-                    _initialized = true;
+                    bool hasPinOrder = false;
+                    using (var c = conn.CreateCommand())
+                    {
+                        c.CommandText = "PRAGMA table_info(entries);";
+                        using var r = c.ExecuteReader();
+                        while (r.Read())
+                        {
+                            var colName = r.GetString(1);
+                            if (string.Equals(colName, "pin_order", StringComparison.OrdinalIgnoreCase))
+                            {
+                                hasPinOrder = true; break;
+                            }
+                        }
+                    }
+                    if (!hasPinOrder)
+                    {
+                        using var tx = conn.BeginTransaction();
+                        using (var c1 = conn.CreateCommand())
+                        {
+                            c1.Transaction = tx;
+                            c1.CommandText = "ALTER TABLE entries ADD COLUMN pin_order INTEGER NULL;";
+                            c1.ExecuteNonQuery();
+                        }
+                        using (var c2 = conn.CreateCommand())
+                        {
+                            c2.Transaction = tx;
+                            c2.CommandText = "CREATE INDEX IF NOT EXISTS idx_entries_pinned_order ON entries(is_pinned, pin_order);";
+                            c2.ExecuteNonQuery();
+                        }
+                        tx.Commit();
+                    }
+
+                    _initialized = true;  
                     return;
                 }
                 catch (SqliteException ex) when (ex.SqliteErrorCode == 14 && attempt < maxAttempts - 1)
@@ -81,8 +117,6 @@ CREATE INDEX IF NOT EXISTS idx_entries_hash ON entries(content_hash);";
             return c;
         }
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 }
