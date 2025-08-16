@@ -17,6 +17,8 @@ namespace MemoDock.ViewModels
         [ObservableProperty] private string? text;
         public string? ContentPath { get; }
         [ObservableProperty] private bool isPinned;
+
+        [ObservableProperty] private bool isSelected;
         public DateTime UpdatedAt { get; }
 
         public ClipboardItemViewModel(long id, string type, string? text, string? contentPath, bool isPinned, DateTime updatedAt)
