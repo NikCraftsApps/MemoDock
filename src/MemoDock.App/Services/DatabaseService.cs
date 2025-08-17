@@ -105,7 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_entries_hash ON entries(content_hash);";
                 }
             }
 
-            throw new InvalidOperationException("Nie uda³o siê zainicjalizowaæ bazy SQLite.");
+            throw new InvalidOperationException("Failed to initialize SQLite database.");
         }
 
         public SqliteConnection OpenConnection()

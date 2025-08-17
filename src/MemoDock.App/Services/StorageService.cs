@@ -93,7 +93,7 @@ VALUES(@e,(SELECT IFNULL(MAX(version_no),0)+1 FROM versions WHERE entry_id=@e),N
             }
 
             RetentionService.TrimToLimit(conn, SettingsService.Instance.Settings.RetentionItems);
-            StorageEvents.RaiseEntriesMutated(); // NEW
+            StorageEvents.RaiseEntriesMutated(); 
         }
 
         public static string? TryLoadText(string path)

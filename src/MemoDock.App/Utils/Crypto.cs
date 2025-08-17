@@ -19,7 +19,6 @@ namespace MemoDock.App.Utils
 
         public static string Sha256(string text) => Sha256Hex(text);
 
-        // placeholdery – aktualnie nie szyfrujemy
         public static byte[] Encrypt(byte[] data, string? password = null) => data;
         public static byte[] Decrypt(byte[] data, string? password = null) => data;
     }

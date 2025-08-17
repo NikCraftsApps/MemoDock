@@ -137,8 +137,8 @@ LIMIT 1000;";
             var ok = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var res = System.Windows.MessageBox.Show(
-                    "Usun¹æ wszystkie NIEPRZYPINANE elementy? (pliki w /store te¿ zostan¹ skasowane)",
-                    "Potwierdzenie",
+                    "Delete all UNPINNED items? (files in /store will be removed as well)",
+                    "Confirmation",
                     System.Windows.MessageBoxButton.YesNo,
                     System.Windows.MessageBoxImage.Warning);
                 return res == System.Windows.MessageBoxResult.Yes;
@@ -222,8 +222,8 @@ LIMIT 1000;";
             if (ids.Length == 0) return;
 
             var res = System.Windows.MessageBox.Show(
-                $"Usun¹æ {ids.Length} zazn. wpis(ów)? Operacja jest nieodwracalna.",
-                "Usuñ zaznaczone",
+                $"Delete {ids.Length} selected item(s)? This action cannot be undone.",
+                "Delete selected",
                 System.Windows.MessageBoxButton.YesNo,
                 System.Windows.MessageBoxImage.Warning);
 

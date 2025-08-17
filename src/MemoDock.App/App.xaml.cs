@@ -14,7 +14,7 @@ namespace MemoDock.App
         {
             try
             {
-                DatabaseService.Instance.Initialize();   // DB najpierw
+                DatabaseService.Instance.Initialize();  
             }
             catch (Exception ex)
             {

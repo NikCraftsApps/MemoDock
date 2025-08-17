@@ -23,7 +23,6 @@ namespace MemoDock.Services
         {
             _timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
             _timer.Tick += (_, __) => PollWrap();
-            // UWAGA: nie startujemy tutaj. Wywo³aj Start() po DB init.
         }
 
         public void Start()
@@ -47,7 +46,6 @@ namespace MemoDock.Services
         {
             if (IsPaused) return;
 
-            // DB jeszcze nie gotowa? pomiñ tick bez logowania
             if (!DatabaseService.Instance.IsInitialized) return;
 
             try
@@ -56,7 +54,6 @@ namespace MemoDock.Services
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("DB not initialized"))
             {
-                // wycisz do czasu inicjalizacji
             }
             catch (Exception ex)
             {
