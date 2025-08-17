@@ -1,27 +1,32 @@
 # MemoDock
 
 **MemoDock** is a clean, lightweight **clipboard manager for Windows** (WPF, .NET 8).  
-It captures **text and images**, lets you **search**, **pin**, browse per-item **history (timeline)**, and keep a **live pinned window** — all **offline**, stored locally in SQLite. It minimizes to the **system tray** and can **auto-start** with Windows.
+It captures **text and images**, lets you **search**, **pin**, browse per-item **history (timeline)**, and keep a compact **Pinned window** — all **offline**, stored locally in SQLite. It minimizes to the **system tray** and can **auto-start** with Windows.
 
 ---
 
-## 🌟 What's New in v1.0
-- Instant capture of **text & images (PNG)** with auto-refresh  
-- **Pin/Unpin**, **Pinned only** filter, and **Live pinned window**  
-- **Timeline** per item (copy or restore previous versions)  
-- Tray app: the close button hides to tray; exit via tray menu  
-- **Import/Export** (JSON + files), retention & image size limits  
-- Clean light UI; no cloud — everything local in `%LOCALAPPDATA%\MemoDock`
+## 🚀 What’s new in **v1.1**
+- **Multi-select** in the main list (checkbox + Extended selection)
+- **Actions** menu: **Pin selected / Unpin selected / Delete selected** (with confirmation, no keyboard delete)
+- **Drag & drop** reordering for **pinned** items (persistent `pin_order`)
+- **Pinned Window** (renamed from Live Snippet) now supports **drag & drop** and **live refresh**
+- Cross-window updates via **StorageEvents** (UI refresh after any data change)
+- Safer startup: DB is initialized **before** clipboard capture starts
+- **Log rotation** (keeps logs small and tidy)
+
+> Next up for **1.2** (already in PRs): global hotkey (show/hide), UI polish, pause capture, duplicate collapsing, housekeeping.
 
 ---
 
 ## ✨ Features
-- Works with **text** and **images**
+- Works with **text** and **images (PNG)**
 - **Search** within text + **Pinned only** filter
 - Item actions: **Copy** · **History** · **Pin/Pinned**
-- **Auto-refresh** (no manual refresh button)
-- **Minimize to tray**, **Auto start** (HKCU\Run; no admin)
-- **Import / Export** your library (portable JSON + files)
+- **Multi-select** + bulk **Actions**
+- **Pinned list drag & drop** with stable order (`pin_order`)
+- **Pinned Window** for quick access (drag & drop + live updates)
+- **Minimize to tray**, optional **Auto start** (user-level, no admin)
+- **Import / Export** (JSON + files)
 - **Retention**: limit for non-pinned items
 - **Privacy-first**: 100% offline, no telemetry
 
@@ -31,19 +36,18 @@ It captures **text and images**, lets you **search**, **pin**, browse per-item *
 
 ### Requirements
 - Windows 10/11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) (devs only)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download) (only for building from source)
 
-### Option A — Download & Run (users)
-1. Get the latest ZIP from **Releases**:  
-   `https://github.com/NikCraftsApps/MemoDock/releases`
+### Option A — Download & Run
+1. Grab the latest ZIP from **Releases**.
 2. Unzip anywhere (e.g., `C:\Apps\MemoDock\`).
 3. Run `MemoDock.App.exe`.
-4. The **X** button **hides** the window to tray. To quit, use tray menu → **Exit**.
+4. The **X** button hides to tray; to quit, use tray menu → **Exit**.
 5. Enable **Settings → Auto start** if you want it to launch with Windows.
 
 > First run may trigger Windows SmartScreen (unsigned EXE). Click **More info → Run anyway**.
 
-### Option B — Build from source (devs)
+### Option B — Build from source
 ```bash
 git clone https://github.com/NikCraftsApps/MemoDock.git
 cd MemoDock
@@ -51,40 +55,26 @@ dotnet restore
 dotnet run --project src/MemoDock.App/MemoDock.App.csproj
 ````
 
-### Option C — Make a portable ZIP (self-contained EXE)
-
-This creates a ZIP your users can unzip and double-click — no .NET runtime required.
-
-**Publish (single line):**
+### Option C — Publish + pack to ZIP (self-contained)
 
 ```powershell
-dotnet publish "src/MemoDock.App/MemoDock.App.csproj" -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:PublishReadyToRun=true -o "publish/memodock-win-x64"
+dotnet publish "src/MemoDock.App/MemoDock.App.csproj" `
+  -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=false -p:PublishReadyToRun=true -p:PublishTrimmed=false `
+  -o "publish/memodock-win-x64"
+
+Compress-Archive -Path "publish/memodock-win-x64/*" -DestinationPath "memodock-vX.Y.Z-win-x64.zip" -Force
 ```
-
-**Create ZIP (choose one):**
-
-* PowerShell:
-
-  ```powershell
-  mkdir "release" -ea 0
-  Compress-Archive -Path "publish/memodock-win-x64/*" -DestinationPath "release/memodock-v1.0.0-win-x64.zip" -Force
-  ```
-* CMD (works on Win10/11):
-
-  ```cmd
-  mkdir release
-  tar -a -c -f release\memodock-v1.0.0-win-x64.zip -C publish\memodock-win-x64 .
-  ```
 
 ---
 
 ## 🧭 Quick Tour
 
-1. **Copy** text/image anywhere → MemoDock captures it automatically
-2. **Pin** important items → use **Pinned only** or **Live pinned window**
-3. Click **History** on an item → see **timeline**, **Copy** or **Restore** a version
-4. **Search** filters text content
-5. **Settings**: auto start, size & retention limits, export/import
+1. Copy text/image anywhere → MemoDock captures it automatically.
+2. **Pin** important items → filter with **Pinned only** or use the **Pinned Window**.
+3. Click **History** on an item → see **timeline**, **Copy** or **Restore** a version.
+4. Use **multi-select** and the **Actions** menu for bulk pin/unpin/delete.
+5. **Settings**: auto start, size & retention limits, export/import.
 
 ---
 
@@ -97,7 +87,8 @@ All data is stored locally:
   ├─ clips.db        (SQLite)
   ├─ store\          (copied images / large content)
   ├─ config.json     (app settings)
-  └─ syncstate.json  (reserved for future sync)
+  ├─ logs.txt / logs_*.txt (rotated logs)
+  └─ ...
 ```
 
 No external services, no telemetry.
