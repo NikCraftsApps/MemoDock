@@ -14,7 +14,7 @@ namespace MemoDock.App
         {
             try
             {
-                DatabaseService.Instance.Initialize();  
+                DatabaseService.Instance.Initialize();
             }
             catch (Exception ex)
             {
@@ -35,11 +35,14 @@ namespace MemoDock.App
             MainWindow = win;
             win.Show();
 
+            try { GlobalHotkeyService.Instance.RegisterDefault(); } catch (Exception ex) { Logger.Log("Global hotkey init failed", ex); }
+
             base.OnStartup(e);
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
+            try { GlobalHotkeyService.Instance.Dispose(); } catch { }
             try { TrayService.Instance.Dispose(); } catch { }
             base.OnExit(e);
         }
