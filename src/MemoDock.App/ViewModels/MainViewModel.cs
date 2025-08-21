@@ -184,6 +184,7 @@ LIMIT 1000;";
             if (item == null) return;
             StorageService.SetPinned(new[] { item.Id }, item.IsPinned);
             _ = RefreshAsync();
+            MemoDock.App.Services.PinnedEvents.Raise();
         }
 
         [RelayCommand]
