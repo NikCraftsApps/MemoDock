@@ -11,10 +11,10 @@
     <DockPanel>
 
         <Border DockPanel.Dock="Top"
-                Background="{StaticResource SurfaceBrush}"
-                Padding="12"
-                BorderBrush="{StaticResource BorderBrush1}"
-                BorderThickness="0,0,0,1">
+            Background="{StaticResource SurfaceBrush}"
+            Padding="12"
+            BorderBrush="{StaticResource BorderBrush1}"
+            BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -26,175 +26,206 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="MemoDock"
-                           FontSize="20" FontWeight="SemiBold"
-                           VerticalAlignment="Center" Margin="4,0,20,0"/>
+                   FontSize="20" FontWeight="SemiBold"
+                   VerticalAlignment="Center" Margin="4,0,18,0"/>
 
                 <TextBox Grid.Column="1"
-                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
-                         MinWidth="360"
-                         ToolTip="Search in text"/>
+                 Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                 MinWidth="360"
+                 ToolTip="Search in text"/>
 
                 <CheckBox Grid.Column="2" Style="{StaticResource Chip}"
-                          Content="Pinned only"
-                          IsChecked="{Binding ShowPinnedOnly}"
-                          Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  Content="Pinned only"
+                  IsChecked="{Binding ShowPinnedOnly}"
+                  Margin="8,0,0,0" VerticalAlignment="Center"/>
 
                 <Button Grid.Column="3" Style="{StaticResource GhostButton}"
-                        Content="Clear unpinned"
-                        Command="{Binding ClearUnpinnedAsyncCommand}"
-                        Margin="12,0,0,0"/>
+                Content="Clear unpinned"
+                Command="{Binding ClearUnpinnedAsyncCommand}"
+                Margin="8,0,0,0"/>
 
                 <Button Grid.Column="4" x:Name="ActionsButton"
-                        Style="{StaticResource GhostButton}"
-                        Content="Actions"
-                        Margin="12,0,0,0"
-                        Click="ActionsButton_Click">
+                Style="{StaticResource GhostButton}"
+                Content="Actions"
+                Margin="8,0,0,0"
+                Click="ActionsButton_Click">
                     <Button.ContextMenu>
                         <ContextMenu Placement="Bottom">
                             <MenuItem Header="Pin selected"
-                                      Command="{Binding PinSelectedCommand}"
-                                      IsEnabled="{Binding HasSelection}"/>
+                        Command="{Binding PinSelectedCommand}"
+                        IsEnabled="{Binding HasSelection}"/>
                             <MenuItem Header="Unpin selected"
-                                      Command="{Binding UnpinSelectedCommand}"
-                                      IsEnabled="{Binding HasSelection}"/>
+                        Command="{Binding UnpinSelectedCommand}"
+                        IsEnabled="{Binding HasSelection}"/>
                             <Separator/>
                             <MenuItem Header="Delete selected"
-                                      Command="{Binding DeleteSelectedCommand}"
-                                      IsEnabled="{Binding HasSelection}"/>
+                        Command="{Binding DeleteSelectedCommand}"
+                        IsEnabled="{Binding HasSelection}"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
 
                 <Button Grid.Column="5" Style="{StaticResource GhostButton}"
-                        Content="Settings"
-                        Click="OpenSettings_Click"
-                        Margin="12,0,0,0"/>
+                Content="Settings"
+                Click="OpenSettings_Click"
+                Margin="8,0,0,0"/>
             </Grid>
         </Border>
 
-        <ListBox x:Name="MainList"
-                 ItemsSource="{Binding View}"
-                 SelectionMode="Extended"
-                 Background="{x:Null}" BorderThickness="0"
-                 ScrollViewer.CanContentScroll="True"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 VirtualizingPanel.IsVirtualizing="True"
-                 VirtualizingPanel.VirtualizationMode="Recycling"
-                 VirtualizingPanel.ScrollUnit="Pixel"
-                 HorizontalContentAlignment="Stretch"
-                 AllowDrop="True"
-                 PreviewMouseLeftButtonDown="MainList_PreviewMouseLeftButtonDown"
-                 MouseMove="MainList_MouseMove"
-                 DragOver="MainList_DragOver"
-                 Drop="MainList_Drop">
+        <Grid>
+            <ListBox x:Name="MainList"
+               ItemsSource="{Binding View}"
+               SelectionMode="Extended"
+               Background="{x:Null}" BorderThickness="0"
+               ScrollViewer.CanContentScroll="True"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               VirtualizingPanel.IsVirtualizing="True"
+               VirtualizingPanel.VirtualizationMode="Recycling"
+               VirtualizingPanel.ScrollUnit="Pixel"
+               HorizontalContentAlignment="Stretch"
+               AllowDrop="True"
+               PreviewMouseLeftButtonDown="MainList_PreviewMouseLeftButtonDown"
+               MouseMove="MainList_MouseMove"
+               DragOver="MainList_DragOver"
+               Drop="MainList_Drop">
 
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <VirtualizingStackPanel/>
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
 
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem">
-                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                </Style>
-            </ListBox.ItemContainerStyle>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
 
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Border Style="{StaticResource Card}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition/>
-                                <ColumnDefinition Width="20"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                            <Border Background="{StaticResource SurfaceAltBrush}"
-                                    CornerRadius="10" Width="80" Height="80" Margin="0,0,14,0"
-                                    BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1">
-                                <Grid>
-                                    <Image Width="80" Height="80" Stretch="UniformToFill"
-                                           Source="{Binding Thumbnail}">
-                                        <Image.Style>
-                                            <Style TargetType="Image">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Type}" Value="image">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Image.Style>
-                                    </Image>
+                                <Border Background="{StaticResource SurfaceAltBrush}"
+                        CornerRadius="10" Width="80" Height="80" Margin="0,0,14,0"
+                        BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1">
+                                    <Grid>
+                                        <Image Width="80" Height="80" Stretch="UniformToFill"
+                           Source="{Binding Thumbnail}">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Type}" Value="image">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
 
-                                    <TextBlock Text="TXT" VerticalAlignment="Center"
-                                               HorizontalAlignment="Center" FontWeight="Bold"
-                                               Foreground="{StaticResource TextMutedBrush}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Type}" Value="text">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Grid>
-                            </Border>
-
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" MaxHeight="64"/>
-                                <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
-                                           Foreground="{StaticResource TextMutedBrush}"
-                                           Margin="0,6,0,0"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                          VerticalAlignment="Center"
-                                          Margin="0,0,10,0"
-                                          ToolTip="Select"/>
-
-                                <Button Style="{StaticResource ActionButton}" Content="Copy"
-                                        Command="{Binding CopyToClipboardCommand}"
-                                        Margin="0,0,10,0"/>
-
-                                <Button Style="{StaticResource ActionButton}" Content="History"
-                                        Command="{Binding DataContext.OpenTimelineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Margin="0,0,10,0"/>
-
-                                <ToggleButton Style="{StaticResource PinToggle}"
-                                              MinWidth="84" MinHeight="38"
-                                              IsChecked="{Binding IsPinned, Mode=TwoWay}"
-                                              Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                              CommandParameter="{Binding}">
-                                    <ToggleButton.Content>
-                                        <TextBlock>
+                                        <TextBlock Text="TXT" VerticalAlignment="Center"
+                               HorizontalAlignment="Center" FontWeight="Bold"
+                               Foreground="{StaticResource TextMutedBrush}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="Pin"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                                                            <Setter Property="Text" Value="Pinned"/>
+                                                        <DataTrigger Binding="{Binding Type}" Value="text">
+                                                            <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                    </ToggleButton.Content>
-                                </ToggleButton>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" MaxHeight="64"/>
+                                    <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                             Foreground="{StaticResource TextMutedBrush}"
+                             Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0"
+                            ToolTip="Select"/>
+
+                                    <Button Style="{StaticResource ActionButton}" Content="Copy"
+                          Command="{Binding CopyToClipboardCommand}"
+                          Margin="0,0,10,0"/>
+
+                                    <Button Style="{StaticResource ActionButton}" Content="History"
+                          Command="{Binding DataContext.OpenTimelineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                          CommandParameter="{Binding}"
+                          Margin="0,0,10,0"/>
+
+                                    <ToggleButton Style="{StaticResource PinToggle}"
+                                MinWidth="84" MinHeight="38"
+                                IsChecked="{Binding IsPinned, Mode=TwoWay}"
+                                Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}">
+                                        <ToggleButton.Content>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Pin"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                                <Setter Property="Text" Value="Pinned"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </ToggleButton.Content>
+                                    </ToggleButton>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Background="Transparent" IsHitTestVisible="False"
+              Visibility="{Binding View.IsEmpty, Converter={StaticResource BoolToVis}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="Nothing here yet."
+                     FontSize="18" FontWeight="SemiBold"
+                     HorizontalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Search}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Search}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="No items"/>
+                        <TextBlock FontSize="13" Foreground="{StaticResource TextMutedBrush}"
+                       Text="Copy something, or clear filters."/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </DockPanel>
 </Window>

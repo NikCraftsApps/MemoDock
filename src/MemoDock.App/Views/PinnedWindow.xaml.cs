@@ -1,85 +1,107 @@
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
+using MemoDock.App.Services;
 using MemoDock.Services;
 using MemoDock.ViewModels;
 using DragDropEffects = System.Windows.DragDropEffects;
 using DragEventArgs = System.Windows.DragEventArgs;
+using ListBox = System.Windows.Controls.ListBox;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
+using Point = System.Windows.Point;
+using Size = System.Windows.Size;
 
 namespace MemoDock.Views
 {
     public partial class PinnedWindow : Window
     {
-        private System.Windows.Point _dragStart;
-        private ClipboardItemViewModel? _dragItem;
+        private Point _dragStart;
+        private bool _isDragging;
 
         public PinnedWindow()
         {
             InitializeComponent();
-            this.Closed += (_, __) => StorageEvents.EntriesMutated -= OnEntriesMutated;
-            StorageEvents.EntriesMutated += OnEntriesMutated;
+
+            PinnedEvents.Changed += OnPinnedChanged;
+            this.Closed += (_, __) => PinnedEvents.Changed -= OnPinnedChanged;
         }
 
-        private void OnEntriesMutated()
+        private async void OnPinnedChanged()
         {
             if (DataContext is PinnedViewModel vm)
-                _ = vm.RefreshAsync();
+                await vm.LoadAsync();
         }
 
         private void PinnedList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStart = e.GetPosition(null);
-            var item = FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject);
-            _dragItem = item?.DataContext as ClipboardItemViewModel;
+            _isDragging = false;
         }
 
         private void PinnedList_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
-            if (_dragItem == null || !_dragItem.IsPinned) return;
-            if ((e.GetPosition(null) - _dragStart).Length < 6) return;
+            if (_isDragging) return;
 
-            DragDrop.DoDragDrop(PinnedList, _dragItem, DragDropEffects.Move);
+            var pos = e.GetPosition(null);
+            if (Math.Abs(pos.X - _dragStart.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(pos.Y - _dragStart.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                _isDragging = true;
+                if (sender is ListBox lb && lb.SelectedItem != null)
+                {
+                    DragDrop.DoDragDrop(lb, lb.SelectedItem, DragDropEffects.Move);
+                }
+                _isDragging = false;
+            }
         }
 
         private void PinnedList_DragOver(object sender, DragEventArgs e)
         {
-            var src = e.Data.GetData(typeof(ClipboardItemViewModel)) as ClipboardItemViewModel;
-            e.Effects = (src != null && src.IsPinned) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Effects = DragDropEffects.Move;
             e.Handled = true;
         }
 
-        private async void PinnedList_Drop(object sender, DragEventArgs e)
+        private void PinnedList_Drop(object sender, DragEventArgs e)
         {
-            var src = e.Data.GetData(typeof(ClipboardItemViewModel)) as ClipboardItemViewModel;
-            if (src == null || !src.IsPinned) return;
+            if (sender is not ListBox lb) return;
+            var data = e.Data.GetData(typeof(ClipboardItemViewModel)) as ClipboardItemViewModel;
+            if (data == null) return;
 
-            var pos = e.GetPosition(PinnedList);
-            var destItem = FindAncestor<ListBoxItem>(PinnedList.InputHitTest(pos) as DependencyObject);
-            var dst = destItem?.DataContext as ClipboardItemViewModel;
+            var point = e.GetPosition(lb);
+            int targetIndex = GetIndexUnderPoint(lb, point);
+            if (targetIndex < 0) targetIndex = lb.Items.Count - 1;
 
-            var pinned = PinnedList.Items.OfType<object>().OfType<ClipboardItemViewModel>().ToList();
+            var vm = DataContext as PinnedViewModel;
+            if (vm == null) return;
 
-            int from = pinned.IndexOf(src);
-            int to = dst != null ? pinned.IndexOf(dst) : pinned.Count - 1;
-            if (from < 0 || to < 0 || from == to) return;
+            var sourceIndex = vm.Pinned.IndexOf(data);
+            if (sourceIndex < 0 || sourceIndex == targetIndex) return;
 
-            pinned.RemoveAt(from);
-            pinned.Insert(to, src);
+            vm.Pinned.Move(sourceIndex, targetIndex);
 
-            var map = pinned.Select((vm, i) => (vm.Id, i)).ToList();
-            StorageService.UpdatePinOrder(map);
+            var map = vm.Pinned.Select((it, idx) => (id: it.Id, order: idx)).ToList();
+            try
+            {
+                StorageService.UpdatePinOrder(map);
+            }
+            catch (Exception ex) { Logger.Log("Pinned reorder failed", ex); }
 
-            if (DataContext is PinnedViewModel vm) await vm.RefreshAsync();
+            PinnedEvents.Raise();
         }
 
-        private static T? FindAncestor<T>(DependencyObject? d) where T : DependencyObject
+        private static int GetIndexUnderPoint(ListBox lb, Point p)
         {
-            while (d != null && d is not T) d = VisualTreeHelper.GetParent(d);
-            return d as T;
+            for (int i = 0; i < lb.Items.Count; i++)
+            {
+                var item = (ListBoxItem)lb.ItemContainerGenerator.ContainerFromIndex(i);
+                if (item == null) continue;
+                var rect = new Rect(item.TranslatePoint(new Point(), lb), new Size(item.ActualWidth, item.ActualHeight));
+                if (rect.Contains(p)) return i;
+            }
+            return -1;
         }
     }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MemoDock.Services;
@@ -17,12 +16,10 @@ namespace MemoDock.ViewModels
 
         public PinnedViewModel()
         {
-            StorageEvents.EntriesMutated += OnEntriesMutated;
-
             _debounce.Tick += async (_, __) =>
             {
                 _debounce.Stop();
-                await RefreshAsync();
+                await LoadAsync();
             };
 
             ClipboardService.Instance.Changed += () =>
@@ -31,15 +28,10 @@ namespace MemoDock.ViewModels
                 _debounce.Start();
             };
 
-            _ = RefreshAsync();
+            _ = LoadAsync();
         }
 
-        private void OnEntriesMutated()
-        {
-            _ = RefreshAsync();
-        }
-
-        public async Task RefreshAsync()
+        public async Task LoadAsync()
         {
             var list = await Task.Run(() =>
             {
@@ -47,10 +39,10 @@ namespace MemoDock.ViewModels
                 using var conn = DatabaseService.Instance.OpenConnection();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
-SELECT id,type,text,content_path,is_pinned,updated_at,pin_order
+SELECT id,type,text,content_path,is_pinned,updated_at
 FROM entries
 WHERE is_pinned=1
-ORDER BY COALESCE(pin_order, 999999), updated_at DESC
+ORDER BY pin_order ASC, updated_at DESC
 LIMIT 100;";
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
